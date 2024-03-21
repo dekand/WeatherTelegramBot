@@ -18,7 +18,6 @@ namespace WeatherTelegramBot.API
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("X-Yandex-API-Key", apiKey);
             string response = await httpClient.GetStringAsync($"https://api.weather.yandex.ru/v2/fact?lat={geo.Latitude.ToString().Replace(',', '.')}&lon={geo.Longitude.ToString().Replace(',', '.')}");
-            await Console.Out.WriteLineAsync("\n"+response+"\n");
             var responseWeather = JsonConvert.DeserializeObject<YaWeather>(response);
             if (responseWeather == null) { return null!; }
             return new YaWeather(

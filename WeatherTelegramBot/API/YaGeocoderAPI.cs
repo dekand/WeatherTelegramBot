@@ -18,23 +18,24 @@ namespace WeatherTelegramBot.API
             string responseString = await httpClient.GetStringAsync($"https://geocode-maps.yandex.ru/1.x/?apikey={apiKey}&geocode={cityName}&format=json");
 
             var responseGeocoder = JsonConvert.DeserializeObject<YaGeocoder>(responseString);
-            string? Name=null, pos=null;
-            try
+            string? Name = null, pos = null;
+            int found = responseGeocoder!.Response!.GeoObjectCollection.metaDataProperty.GeocoderResponseMetaData.Found;
+            if (found > 0)
             {
                 Name = responseGeocoder?.Response?.GeoObjectCollection?.FeatureMember?[0]?.GeoObject?.Name;
                 pos = responseGeocoder?.Response?.GeoObjectCollection?.FeatureMember?[0]?.GeoObject?.Point?.pos;
-            }
-            catch (Exception e) { await Console.Out.WriteLineAsync(e.Message); }
 
-            string[] coordinates = pos?.Split(' ') ?? Array.Empty<string>();
+                string[] coordinates = pos?.Split(' ') ?? Array.Empty<string>();
 
-            if (coordinates.Length != 2
-                || !double.TryParse(coordinates[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double longitude)
-                || !double.TryParse(coordinates[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double latitude))
-            {
-                return null!;
+                if (coordinates.Length != 2
+                    || !double.TryParse(coordinates[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double longitude)
+                    || !double.TryParse(coordinates[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double latitude))
+                {
+                    return null!;
+                }
+                return new CityDate(Name, longitude, latitude);
             }
-            return new CityDate(Name, longitude, latitude);
+            else { return null!; }
         }
     }
 }

@@ -9,12 +9,8 @@ using WeatherTelegramBot.API;
 
 internal class Program
 {
-    private static readonly bool RequestApi = true;
-
     static async Task Main(string[] args)
     {
-        //await ImageCreator.ImageCreation();
-
         var botClient = new TelegramBotClient(APIKey.Bot);
 
         CancellationTokenSource cts = new();
@@ -34,8 +30,8 @@ internal class Program
 
         var me = await botClient.GetMeAsync();
 
-        Console.WriteLine($"Start listening for @{me.Username}");
-        Console.ReadLine();
+        await Console.Out.WriteLineAsync($"Start listening for @{me.Username}");
+        await Console.In.ReadLineAsync();
 
         // Send cancellation request to stop bot
         cts.Cancel();
@@ -44,20 +40,28 @@ internal class Program
         {
             // Only process Message updates: https://core.telegram.org/bots/api#message
             if (update.Message is not { } message) return;
-            // Only process text messages
             if (message.Text is not { } messageText) return;
 
             string erText = "";
-            if (messageText == "/start") { erText = "Напиши название города (ru/en), где хочешь узнать погоду."; }
-            if (messageText.Length > 30) { erText = $"\"{message.Text}\" - Слишком длинное название для города."; }
+            if (messageText == "/start" || messageText == "Другой")
+            {
+                erText = "Напиши название города (ru/en), где хочешь узнать погоду.\nВот такая, например, погода в Новосибирске.";
+                messageText = "Новосибирск";
+            }
 
+            Stream stream = new MemoryStream();
             // Get City obj (longitude, latitude) by name
             var geo = await YaGeocoderAPI.GetLocation(messageText, APIKey.Geocoder);
-            if (geo == null) { erText = "Такой город разве существует? Не могу определить."; return; }
+            if (geo == null) { erText = "Такой город разве существует? Не могу определить."; }
+            else
+            {// Get Weather obj by City (lon, lat)
+                var weather = await YaWeatherAPI.GetWeather(geo, APIKey.Weather);
+                if (weather == null) { erText = "У синоптиков какие-то неполадки, не могу определить погоду."; }
 
-            // Get Weather obj by City (lon, lat)
-            var weather = await YaWeatherAPI.GetWeather(geo, APIKey.Weather);
-            if (weather == null) { erText = "У синоптиков какие-то неполадки, не могу определить погоду."; return; }
+                try
+                { stream = ImageCreator.ImageCreation(stream, geo.GetDisplay(), weather); }
+                catch (Exception e) { await Console.Out.WriteLineAsync(e.Message); }
+            }
 
             var chatId = message.Chat.Id;
             var chatName = message.Chat.FirstName;
@@ -67,16 +71,15 @@ internal class Program
             //кнопки быстрого ответа (локация, нск, ук, др)
             ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
             {
-                new KeyboardButton[]{KeyboardButton.WithRequestLocation("Отправить мою локацию"),"Новосибирск"},
-                new KeyboardButton[]{"Усть-Каменогорск","Другой"}
+                new KeyboardButton[]{"Новосибирск","Усть-Каменогорск"},
+                new KeyboardButton[]{"Москва","Другой"}
             });
 
-            Stream stream = ImageCreator.ImageCreation(new MemoryStream(), geo.GetDisplay(), weather);
 
             Message sentMessage = await botClient.SendPhotoAsync(
                 chatId: chatId,
-                photo: erText.Length > 0 ? InputFile.FromUri("https://cdn.dribbble.com/users/3068189/screenshots/5860179/cloud.jpg") : InputFile.FromStream(stream),
-                caption: erText.Length > 0 ? $"{erText}" : null,
+                photo: erText.Any() && message.Text != "/start" && message.Text != "Другой" ? InputFile.FromUri(DirPath.errorImg) : InputFile.FromStream(stream),
+                caption: erText.Any() ? $"{erText}" : null,
                 parseMode: ParseMode.Html,
                 replyMarkup: replyKeyboardMarkup,
                 cancellationToken: cancellationToken);

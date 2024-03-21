@@ -10,9 +10,20 @@
         public GeoObjectCollection GeoObjectCollection { get; set; }
     }
 
+    class YametaDataProperty
+    {
+        public GeocoderResponseMetaData GeocoderResponseMetaData { get; set; }
+    }
+    
+    class GeocoderResponseMetaData
+    {
+        public int Found { get; set; }
+    }
+
     class GeoObjectCollection
     {
         public GeoObjectWrapper[] FeatureMember { get; set; }
+        public YametaDataProperty metaDataProperty { get; set; }
     }
 
     class GeoObjectWrapper

@@ -34,6 +34,7 @@
                 "THUNDERSTORM" => "Гроза",
                 "THUNDERSTORM-WITH-RAIN" => "Гроза с дождем",
                 "THUNDERSTORM-WITH-HAIL" => "Гроза с градом",
+                "WET-SNOW" => "Мокрый снег",
                 _ => condition,
             };
         }
