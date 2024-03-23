@@ -11,8 +11,8 @@ namespace WeatherTelegramBot.API
         /// </summary>
         /// <param name="messageText">City name.</param>
         /// <param name="apiKey">Geocoder API key.</param>
-        /// <returns><seealso cref="CityDate"/> object instance.</returns>
-        public static async Task<CityDate> GetLocation(string cityName, string apiKey)
+        /// <returns><seealso cref="CityData"/> object instance.</returns>
+        public static async Task<CityData> GetLocation(string cityName, string apiKey)
         {
             using var httpClient = new HttpClient();
             string responseString = await httpClient.GetStringAsync($"https://geocode-maps.yandex.ru/1.x/?apikey={apiKey}&geocode={cityName}&format=json");
@@ -33,7 +33,7 @@ namespace WeatherTelegramBot.API
                 {
                     return null!;
                 }
-                return new CityDate(Name, longitude, latitude);
+                return new CityData(Name, longitude, latitude);
             }
             else { return null!; }
         }

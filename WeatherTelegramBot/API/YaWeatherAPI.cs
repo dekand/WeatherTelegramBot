@@ -8,12 +8,12 @@ namespace WeatherTelegramBot.API
     internal class YaWeatherAPI
     {
         /// <summary>
-        /// Determines weather parameters for an instance of a <seealso cref="CityDate"/> object (by longitude and latitude).
+        /// Determines weather parameters for an instance of a <seealso cref="CityData"/> object (by longitude and latitude).
         /// </summary>
-        /// <param name="geo"><seealso cref="CityDate"/> object instance.</param>
+        /// <param name="geo"><seealso cref="CityData"/> object instance.</param>
         /// <param name="apiKey">Weather API key.</param>
         /// <returns><seealso cref="YaWeather"/> object instance.</returns>
-        public static async Task<YaWeather> GetWeather(CityDate geo, string apiKey)
+        public static async Task<YaWeather> GetWeather(CityData geo, string apiKey)
         {
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("X-Yandex-API-Key", apiKey);

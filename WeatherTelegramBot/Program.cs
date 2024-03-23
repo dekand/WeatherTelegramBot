@@ -6,9 +6,12 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using WeatherTelegramBot;
 using WeatherTelegramBot.API;
+using WeatherTelegramBot.Models;
 
 internal class Program
 {
+    private static string erText = "";
+
     static async Task Main(string[] args)
     {
         var botClient = new TelegramBotClient(APIKey.Bot);
@@ -41,32 +44,15 @@ internal class Program
             // Only process Message updates: https://core.telegram.org/bots/api#message
             if (update.Message is not { } message) return;
             if (message.Text is not { } messageText) return;
-
-            string erText = "";
-            if (messageText == "/start" || messageText == "Другой")
-            {
-                erText = "Напиши название города (ru/en), где хочешь узнать погоду.\nВот такая, например, погода в Новосибирске.";
-                messageText = "Новосибирск";
-            }
-
-            Stream stream = new MemoryStream();
-            // Get City obj (longitude, latitude) by name
-            var geo = await YaGeocoderAPI.GetLocation(messageText, APIKey.Geocoder);
-            if (geo == null) { erText = "Такой город разве существует? Не могу определить."; }
-            else
-            {// Get Weather obj by City (lon, lat)
-                var weather = await YaWeatherAPI.GetWeather(geo, APIKey.Weather);
-                if (weather == null) { erText = "У синоптиков какие-то неполадки, не могу определить погоду."; }
-
-                try
-                { stream = ImageCreator.ImageCreation(stream, geo.GetDisplay(), weather); }
-                catch (Exception e) { await Console.Out.WriteLineAsync(e.Message); }
-            }
+            erText = "";
 
             var chatId = message.Chat.Id;
             var chatName = message.Chat.FirstName;
 
             await Console.Out.WriteLineAsync($"Received a '{messageText}' message in chat {chatId} by {chatName}.");
+
+            Stream stream = new MemoryStream();
+            stream = await CreateImageStream(stream, messageText);
 
             //кнопки быстрого ответа (локация, нск, ук, др)
             ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
@@ -99,6 +85,41 @@ internal class Program
             Console.WriteLine(ErrorMessage);
             return Task.CompletedTask;
         }
+    }
+
+    // Get City obj (longitude, latitude) by name
+    private static async Task<CityData> GetCityLocation(string city)
+    {
+        var cityData = await YaGeocoderAPI.GetLocation(city, APIKey.Geocoder);
+        if (cityData == null) { erText = "Такой город разве существует? Не могу определить."; throw new Exception("Город не найден."); }
+        return cityData;
+    }
+
+    // Get Weather obj by City (lon, lat)
+    private static async Task<YaWeather> GetCityWeather(CityData cityData)
+    {
+        var weather = await YaWeatherAPI.GetWeather(cityData, APIKey.Weather);
+        if (weather == null) { erText = "У синоптиков какие-то неполадки, не могу определить погоду."; throw new Exception("Погода не определена."); }
+        return weather;
+    }
+
+    // Create image and save it in stream
+    private static async Task<Stream> CreateImageStream(Stream stream, string city)
+    {
+        if (city == "/start" || city == "Другой")
+        {
+            erText = "Напиши название города (ru/en), где хочешь узнать погоду.\nВот такая, например, погода в Новосибирске.";
+            city = "Новосибирск";
+        }
+        try
+        {
+            var cityData = await GetCityLocation(city);
+            var weather = await GetCityWeather(cityData);
+
+            stream = ImageCreator.ImageCreation(stream, cityData.GetDisplay(), weather);
+        }
+        catch (Exception e) { await Console.Out.WriteLineAsync(e.Message); }
+        return stream;
     }
 }
 
